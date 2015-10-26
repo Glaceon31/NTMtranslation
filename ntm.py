@@ -11,12 +11,21 @@ class NTM(object):
 	def __init__(self, controller_sizes, memory_size):
 		self.controller = MlpController(controller_sizes)
 		self.params = self.controller.params
-		self.memory = numpy.asarray(memory_size)
+		self.memory = numpy.zeros(memory_size)
+
+		def pred_one(input_one):
+			return self.controller.getY(input_one)
 
 		input = T.dmatrix()
-		testinfo = self.controller.getY(input[1])
-		#testinfo = input[1].shape
-		pred = input
+		#testinfo = self.controller.getY(input[1])
+		testinfo = input.shape
+		pred, _ = theano.scan(fn = pred_one, 
+								sequences = input)
+		'''
+		for i in xrange(input.shape[0]):
+			pred[i] = self.controller.getY(input[i])
+		'''
+
 
 		self.predict = theano.function(inputs = [input], outputs = pred)
 		self.test = theano.function(inputs = [input], outputs = testinfo)

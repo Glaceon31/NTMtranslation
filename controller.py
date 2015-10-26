@@ -24,13 +24,13 @@ class MlpController(ForwardController):
 			self.b.append(theano.shared(value=tools.emptyfloat(layer_sizes[i+1]),name='Controller_b'+str(i),borrow=True))
 		self.params = self.w+self.b
 
-	def getY(self, input):
+	def getY(self, input, activation=T.tanh):
 		#if input.shape[0] != self.w[0].get_value().shape[0]:
 		#	raise Exception('input length should be '+str(self.w[0].get_value().shape[0]))
 		layernum = len(self.layer_sizes)
 		middle = input
 		for i in xrange(layernum-1):
-			middle = T.dot(middle, self.w[i])
+			middle = activation(T.dot(middle, self.w[i]))
 		output = middle
 		return output
 
