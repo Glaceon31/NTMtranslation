@@ -13,16 +13,17 @@ class ForwardController(Controller):
 
 class MlpController(ForwardController):
 	def __init__(self, layer_sizes):
-		print layer_sizes
+		#print layer_sizes
 		layernum = len(layer_sizes)
 		self.layer_sizes = layer_sizes
 		self.w = []
 		self.b = []
+		self.params = []
 		for i in xrange(layernum-1):
 			size = (layer_sizes[i], layer_sizes[i+1])
-			self.w.append(theano.shared(value=tools.initialweights(size),name='Controller_w'+str(i),borrow=True))
-			self.b.append(theano.shared(value=tools.emptyfloat(layer_sizes[i+1]),name='Controller_b'+str(i),borrow=True))
-		self.params = self.w+self.b
+			self.w.append(theano.shared(value=tools.initial_weights(size),name='Controller_w'+str(i)))
+			self.b.append(theano.shared(value=tools.empty_floats(layer_sizes[i+1]),name='Controller_b'+str(i)))
+			self.params += [self.w[i], self.b[i]]
 
 	def getY(self, input, activation=T.tanh):
 		#if input.shape[0] != self.w[0].get_value().shape[0]:
@@ -30,7 +31,7 @@ class MlpController(ForwardController):
 		layernum = len(self.layer_sizes)
 		middle = input
 		for i in xrange(layernum-1):
-			middle = activation(T.dot(middle, self.w[i]))
+			middle = activation(T.dot(middle, self.w[i])+self.b[i])
 		output = middle
 		return output
 
