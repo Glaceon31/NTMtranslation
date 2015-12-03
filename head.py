@@ -8,7 +8,7 @@ from theano import tensor as T
 import tools
 import theano.tensor.signal.conv
 
-class head:
+class Head:
 	def __init__(self, vector_size, memory_size, shift_width, num):
 		#context addressing
 		key_w = tools.initial_weights(vector_size, memory_size[1])
@@ -48,7 +48,9 @@ class head:
 		self.add_b = theano.shared(value = add_b, name = 'head%d_addb' % num, borrow=True)
 		self.params = [self.key_w, self.key_b,self.beta_w, self.beta_b,self.g_w, self.g_b,\
 						self.erase_w, self.erase_b, self.add_w, self.add_b]
-		#self.params = [self.erase_w, self.erase_b, self.add_w, self.add_b]
+		#self.params = [self.key_w, self.key_b,self.beta_w, self.beta_b,self.g_w, self.g_b,\
+		#				self.erase_w, self.erase_b, self.add_w, self.add_b,\
+		#				self.shift_w, self.shift_b, self.gamma_w, self.gamma_b]
 	def emit_new_weight(self, inp_h, weight_h, memory_h):
 		#context addressing
 		
@@ -78,22 +80,45 @@ class head:
 		#location addressing
 		#interpolating
 		
-		weight_g = g*weight_c+ (1-g)*weight_h
+		#weight_g = g*weight_c+ (1-g)*weight_h
 		#weight_conv = theano.tensor.signal.conv(weight_g.reshape(memory.shape[0],1),
 		#				shift_normal.reshape(self.shift_width, 1))
 
 		#code from shaw
 
 		#shift_normal = shift/T.sum(shift)
+
 		
+
+		'''
+		wlength = weight_g.shape[0]
+		shift_sidewidth = self.shift_width/2
+		weight_shift = weight_h
+
+		def cal_shift(pos):
+			weight_pos = 0.
+			for j in range(0,self.shift_width):
+				pos = i+j-shift_sidewidth
+				if pos < 0:
+					pos += wlength
+				if pos >= wlength:
+					pos -= wlength
+				weight_shift += shift[j]*weight_g[pos]
+			return weight_pos
+
+		weight_shift
+		'''
+
 		#weight_shift = T.sum(shift*weight_g[self.shift_conv], axis = 0)
 		#sharpening
-		
-		#weight_gamma = weight_shift ** gamma
+		'''
+		weight_gamma = weight_shift ** gamma
 		#weight_gamma = weight_g
 		
-		#weight_new = weight_gamma/T.sum(weight_gamma)
-		weight_new = weight_g
+		weight_new = weight_gamma/T.sum(weight_gamma)
+		'''
+		weight_new = weight_c
+		
 
 		#erase and add
 		erase = T.nnet.sigmoid(T.dot(inp_h,self.erase_w)+self.erase_b)

@@ -3,7 +3,7 @@ import numpy
 import os
 
 from ntm import *
-from head import *
+from head_neural import *
 from controller import *
 from theano import tensor as T
 import tools
@@ -12,33 +12,33 @@ import task_data
 if __name__ == '__main__':
 	vector_size = 3
 
-	controller = MlpController([3,3])
+	controller = MLPController([3,3])
 	input_data = numpy.asarray([0., 1., 0.])
 
 	
 	input = T.dvector()
 	test_controller = theano.function(inputs = [input], outputs = controller.getY(input))
-	print test_controller(input_data)
+	#print test_controller(input_data)
 
 	memory = numpy.asarray([[.2,.2,.2], [.1,-.6,.4],[-.8,.3,.9]])
 	weight = numpy.asarray([.2,.3,.5])
 	memory_size = (3,3)
-	head = head(vector_size,memory_size,3,0)
+	head = head_neural(vector_size,memory_size,0)
 	'''
 	for param in head.params:
 		print param
 		print param.get_value()
 	'''
 
-	print '\n'
-	'''
+	#print '\n'
+	
 	test_head = theano.function(inputs=[input], outputs = head.emit_new_weight(input,weight,memory))
 	for i in test_head(input_data):
 		print i,'\n'
-	'''
+	
 
 	#input_sequence, output_sequence = task_data.copytask(5,10)
-
+	'''
 	input_sequence = numpy.asarray([[1.,1.,0.],[0.,0.,1.],[0.,0.,0.]])
 	output_sequence = numpy.asarray([[0.,0.,0.],[0.,0.,1.],[1.,1.,0.]])
 
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 	for param in ntm.params:
 		print param
 		print param.get_value()
-
+'''
 	#print input_sequence
 	#print output_sequence
 	#ntm = NTM(3,1,[vector_size,3], (200, vector_size))

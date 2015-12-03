@@ -5,29 +5,38 @@ import os
 from theano import tensor as T
 from theano.ifelse import ifelse
 from controller import *
+from controller_RNN import *
 from head import *
+from head_neural import *
 from theano.compile.debugmode import DebugMode
 import tools
 
 class NTM(object):
-	def __init__(self, vector_size, head_num, controller_sizes, memory_size, shift_width = 3, activation = T.tanh):
+	def __init__(self, vector_size, head_type,head_num, controller_type, controller_sizes, memory_size, shift_width = 3, activation = T.tanh):
 		self.lr = 0.01
-		self.controller = MlpController(controller_sizes)
+		self.controller = controller_type(controller_sizes)
 		input_w = tools.initial_weights(vector_size, controller_sizes[0])
 		self.input_w = theano.shared(value = input_w, name = 'input_w', borrow=True)
 		input_b = 0.*tools.initial_weights(controller_sizes[0])
 		self.input_b = theano.shared(value = input_b, name = 'input_b', borrow=True)
 		read_w = tools.initial_weights(memory_size[1], controller_sizes[0])
 		self.read_w = theano.shared(value = read_w, name = 'read_w', borrow=True)
+		output_w = tools.initial_weights(controller_sizes[-1], vector_size)
+		self.output_w = theano.shared(value=output_w,name='Controller_outw', borrow=True)
+		output_b = 0.*tools.initial_weights(controller_sizes[-1])
+		self.output_b = theano.shared(value=output_b,name='Controller_outb', borrow=True)
 		memory_init_p = 2*(numpy.random.rand(memory_size[0],memory_size[1])-0.5)
 		weight_init_p = numpy.random.randn((memory_size[0]))
 		self.memory_init = theano.shared(value = memory_init_p, name = 'memory_init', borrow=True)
 		self.weight_init = theano.shared(value = weight_init_p, name = 'weight_init', borrow=True)
-		self.params = self.controller.params+[self.input_w, self.read_w, self.input_b, self.weight_init,self.memory_init]
+		self.params = self.controller.params+[self.input_w, self.read_w, self.input_b, self.weight_init,self.memory_init, self.output_w, self.output_b]
 
 		self.heads = []
 		for i in xrange(head_num):
-			self.heads.append(head(vector_size, memory_size, shift_width,i))
+			if head_type == Head_neural:
+				self.heads.append(head_type(controller_sizes[-1], memory_size,i))
+			else:
+				self.heads.append(head_type(controller_sizes[-1], memory_size, shift_width,i))
 			self.params += self.heads[i].params
 
 		#memory_init = tools.initial_weights(memory_size)
@@ -48,7 +57,8 @@ class NTM(object):
 			controller_input = activation(input_t+read_t+self.input_b)
 			#zero_vec = theano.shared(value=numpy.zeros((vector_size,)))
 			#mask = T.nonzero(T.eq(rawinput_t,0))
-			output, hid = self.controller.getY(controller_input)
+			hid = self.controller.getY(controller_input)
+			output = T.nnet.sigmoid(T.dot(hid, self.output_w)+self.output_b)
 			#result = T.switch(T.eq(zero_vec,rawinput_t),output,theano.shared(0))
 			result = output
 			#testing = T.switch(T.eq(zero_vec,rawinput_t),theano.shared(1),theano.shared(0))
@@ -77,6 +87,7 @@ class NTM(object):
 
 		input = T.matrix()
 		output = T.matrix()
+		seqlength = input.shape[0]/2
 		#tmp = T.dvector()
 		#testinfo = self.controller.getY(input[1])
 		#testinfo = input.shape
@@ -86,7 +97,7 @@ class NTM(object):
 							outputs_info = [weight_init, memory_init,None ])
 
 		
-		entropy = T.sum(T.nnet.binary_crossentropy(5e-6+(1-1e-5)*pred[-1], output),axis = 1)
+		entropy = T.sum(T.nnet.binary_crossentropy(5e-6+(1-1e-5)*pred[-1][seqlength+1:], output[seqlength+1:]),axis = 1)
 		
 		
 		#costs = (pred[-1]-output) ** 2
@@ -96,11 +107,12 @@ class NTM(object):
 		l2 = T.sum(0)
 		for param_i in self.params:
 			l2 = l2+(param_i**2).sum()
+		#norm = l2
 		cost = T.sum(entropy) +1e-3*l2
 
 
 		grads = [T.grad(cost, param_i) for param_i in self.params]
-		grads_clip = [T.clip(grad,-100,100) for grad in grads]
+		grads_clip = [T.clip(grad,-10,10) for grad in grads]
 		#params_up = [param_i for param_i, grad_i in zip(self.params, grads_clip)]
 		#new_value = [param_i-self.lr*grad_i for param_i, grad_i in zip(self.params, grads_clip)]
 		#SGD
@@ -111,7 +123,8 @@ class NTM(object):
 		updates = tools.adadelta(self.params, grads_clip, 0.95, 1e-6)
 		#updates = tools.adadelta_another(self.params,grads_clip)
 
-		self.predict = theano.function(inputs = [input], outputs = [weight_init]+[memory_init]+pred)
+		self.test = theano.function(inputs = [], outputs = l2)
+		self.predict = theano.function(inputs = [input], outputs = pred)
 		self.grads = theano.function(inputs = [input, output], outputs = grads)
 		#self.train = theano.function(inputs = [input,output], outputs = [input,output, costs, cost, pred[0],pred[2],pred[-1],grads[5],grads_clip[5], grads[6]], updates = updates)
 		self.train = theano.function(inputs = [input,output], outputs = cost, updates = updates)#,mode=theano.compile.MonitorMode(post_func=tools.detect_nan))
