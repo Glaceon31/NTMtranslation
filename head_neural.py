@@ -68,3 +68,4 @@ class Head_neural:
 		#if test:
 		#	return key, beta,weight_c,g,weight_g,shift,weight_shift,gamma,weight_gamma,weight_new
 		return weight_new, erase, add
+		

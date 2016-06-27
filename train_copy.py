@@ -36,7 +36,7 @@ if __name__ == '__main__':
 	#tmp = numpy.asarray([0.1,0.2,.3,.4,.5,0.1,0.2,.3,.4,.5])
 	minval = 2.
 	for i in xrange(max_sequences):
-		seqlength = 10#numpy.random.randint(int(max_seqlength * (min(i,50000)/float(50000))**2) +1) + 1
+		seqlength = 20#numpy.random.randint(int(max_seqlength * (min(i,50000)/float(50000))**2) +1) + 1
 		for j in xrange(one_round):
 			input_sequence, output_sequence = task_data.copytask(vector_size, seqlength)
 			#print ntm.train(input_sequence, output_sequence)
@@ -83,3 +83,4 @@ if __name__ == '__main__':
 	input_sequence, output_sequence = task_data.copytask(vector_size,2)
 	print input_sequence,output_sequence
 	print ntm.predict(input_sequence)
+	

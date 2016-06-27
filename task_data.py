@@ -33,3 +33,4 @@ def copytask(vector_size, length):
 	
 	
 	return input_sequence, output_sequence
+	

@@ -35,4 +35,3 @@ class MLPController(object):
 		#output = T.dot(middle, self.output_w)+self.output_b
 		return fin_hid
 		#return middle
-
